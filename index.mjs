@@ -93,10 +93,19 @@ async function gitDiffStaged() {
 
 
 }
+async function randomNode(){
+  const response = await ky.get('https://api.gaianet.ai/api/v1/network/nodes/');
+const data = await response.json();
+const objectArray = data.data.objects.filter(obj => obj.status === 'ONLINE');
+const random = objectArray[Math.floor(Math.random() * objectArray.length)];
+
+
+return random
+}
 
 async function bo(diffString){
-  // const random=await randomNode();
-  const response = await ky.post(`https://0x768da699e7b40d6fa4660afefa33ef6ccc45749a.us.gaianet.network/v1/chat/completions`, {
+  const random=await randomNode();
+  const response = await ky.post(`https://${random.node_id}/v1/chat/completions`, {
     json: {
       "messages": [
         {
@@ -117,7 +126,7 @@ async function bo(diffString){
           content: diffString
       }
       ],
-      "model": "Meta-Llama-3-8B-Instruct-Q5_K_M"
+      "model": random.model_name
     }
   });
   const a =await response.json()
@@ -125,6 +134,7 @@ async function bo(diffString){
 }
 
 async function run() {
+  
   try {
     await gitAdd()
     const diffString = await gitDiffStaged();
