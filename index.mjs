@@ -105,7 +105,7 @@ return random
 
 async function bo(diffString){
   const random=await randomNode();
-  const response = await ky.post(`https://${random.node_id}/v1/chat/completions`, {
+  const response = await ky.post(`https://${random.subdomain}/v1/chat/completions`, {
     json: {
       "messages": [
         {
@@ -127,7 +127,13 @@ async function bo(diffString){
       }
       ],
       "model": random.model_name
-    }
+    }, retry: {
+      limit: 3,
+      methods: ['post'],
+      statusCodes: [408, 504],
+      backoffLimit: 3000
+    },
+    timeout: 50000
   });
   const a =await response.json()
   return a
