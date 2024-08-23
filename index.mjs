@@ -1,16 +1,9 @@
 #!/usr/bin/env node
 import { execSync, spawn } from "child_process";
 import { confirm } from '@clack/prompts';
-import Groq from "groq-sdk";
-import dotenv from "dotenv";
-dotenv.config();
 import ky from 'ky';
 
 
-const API_KEY = process.env.GROQ_API_KEY;
-const groq = new Groq({
-    apiKey: API_KEY
-});
 
 
 const systemMessageEnglishOnly = `You are a commit message generator create a commit message in english by their diff string, 
@@ -100,13 +93,7 @@ async function gitDiffStaged() {
 
 
 }
-async function randomNode(){
-  const response = await ky.get('https://api.gaianet.ai/api/v1/network/nodes/');
-const data = await response.json();
-const objectArray = data.data.objects.filter(obj => obj.status === 'ONLINE');
-const random = objectArray[Math.floor(Math.random() * objectArray.length)];
-return random
-}
+
 async function bo(diffString){
   // const random=await randomNode();
   const response = await ky.post(`https://0x768da699e7b40d6fa4660afefa33ef6ccc45749a.us.gaianet.network/v1/chat/completions`, {
@@ -144,32 +131,7 @@ async function run() {
     if (!diffString.trim()) {
       throw { status: 5001, message: "No changes to commit" };
     }
-//     console.log(diffString)
-//     execSync("git reset")
-// return
- 
-  //   const completion = await groq.chat.completions.create({
-  //     messages: [
-  //         {
-  //             role: "system",
-  //             content: systemMessageEnglishOnly
-  //         },
-  //         { role: 'user', content: `diff --git a/bun.lockb b/bun.lockb
-  //           new file mode 100755
-  //           index 0000000..7a2303c
-  //           Binary files /dev/null and b/bun.lockb differ
-  //           ` }, 
-  //         {
-  //           role: "assistant",
-  //           content: "🌍feat(bun.lockb): Bun integration\nOur bun is now integrated into our project. This commit adds the ability to use a bun in our project.\n---\n\n\n"
-  //         },
-  //         {
-  //             role: "user",
-  //             content: diffString
-  //         }
-  //     ],
-  //     model: "gemma-7b-it"
-  // });
+
   const completion=await bo(diffString)
     const text=completion.choices[0]?.message?.content || "";
     let text2=text.replace(/```/g, '');
