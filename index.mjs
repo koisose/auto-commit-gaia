@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execSync, spawn } from "child_process";
-import { confirm } from '@clack/prompts';
+import { confirm, select } from '@clack/prompts';
 import ky from 'ky';
 
 
@@ -78,53 +78,54 @@ async function gitDiffStaged() {
   });
 
   const files = output.trim().split('\n');
-  let shortestFile = files[0];
-  let shortestDiffLength = Infinity;
-  for (const file of files) {
-    const diff = await readFirstFileDiff(file);
-    if (diff.length < shortestDiffLength) {
-      shortestFile = file;
-      shortestDiffLength = diff.length;
-    }
-  }
-  const diff = await readFirstFileDiff(shortestFile);
-  return diff;
+  return files
+  // let shortestFile = files[0];
+  // let shortestDiffLength = Infinity;
+  // for (const file of files) {
+  //   const diff = await readFirstFileDiff(file);
+  //   if (diff.length < shortestDiffLength) {
+  //     shortestFile = file;
+  //     shortestDiffLength = diff.length;
+  //   }
+  // }
+  // const diff = await readFirstFileDiff(shortestFile);
+  // return diff;
 
 
 
 }
-async function randomNode(){
+async function randomNode() {
   const response = await ky.get('https://api.gaianet.ai/api/v1/network/nodes/');
-const data = await response.json();
-const objectArray = data.data.objects.filter(obj => obj.status === 'ONLINE');
-const random = objectArray[Math.floor(Math.random() * objectArray.length)];
-
-
-return random
+  const data = await response.json();
+  const objectArray = data.data.objects.filter(obj => obj.status === 'ONLINE' && obj.model_name && (obj.model_name.toLowerCase().includes('gemma') || obj.model_name.toLowerCase().includes('llama')));
+  const random = objectArray[Math.floor(Math.random() * objectArray.length)];
+  return random
 }
 
-async function bo(diffString){
-  const random=await randomNode();
+async function bo(diffString) {
+  const random = await randomNode();
+  console.log(random.model_name)
   const response = await ky.post(`https://${random.subdomain}/v1/chat/completions`, {
     json: {
       "messages": [
         {
           role: "system",
           content: systemMessageEnglishOnly
-      },
-      { role: 'user', content: `diff --git a/bun.lockb b/bun.lockb
+        },
+        {
+          role: 'user', content: `diff --git a/bun.lockb b/bun.lockb
         new file mode 100755
         index 0000000..7a2303c
         Binary files /dev/null and b/bun.lockb differ
-        ` }, 
-      {
-        role: "assistant",
-        content: "🌍feat(bun.lockb): Bun integration\nOur bun is now integrated into our project. This commit adds the ability to use a bun in our project.\n---\n\n\n"
-      },
-      {
+        ` },
+        {
+          role: "assistant",
+          content: "🌍feat(bun.lockb): Bun integration\nOur bun is now integrated into our project. This commit adds the ability to use a bun in our project.\n---\n\n\n"
+        },
+        {
           role: "user",
           content: diffString
-      }
+        }
       ],
       "model": random.model_name
     }, retry: {
@@ -135,39 +136,47 @@ async function bo(diffString){
     },
     timeout: 50000
   });
-  const a =await response.json()
+  const a = await response.json()
   return a
 }
 
 async function run() {
-  
+
+
   try {
     await gitAdd()
     const diffString = await gitDiffStaged();
-    if (!diffString.trim()) {
-      throw { status: 5001, message: "No changes to commit" };
+    if (diffString.length === 0) {
+      execSync(`git reset`);
+      console.log("No changes to commit");
+      process.exit()
     }
+    const fileName = await select({
+      message: 'Pick which file to create commit message from:',
+      options: diffString.map(a => ({ value: a, label: a }))
+    });
 
-  const completion=await bo(diffString)
-    const text=completion.choices[0]?.message?.content || "";
-    let text2=text.replace(/```/g, '');
-    let text3=text2.replace(/---/g, '')
-    let text4=text3.replace(/\"/gi, "\\\"")
-    let text5=text4.replace(/\`/gi, "\\`");
-    let text6=text5.replace(/\'/gi, "\\'");
+    const diff = await readFirstFileDiff(fileName)
+    const completion = await bo(diff)
+    const text = completion.choices[0]?.message?.content || "";
+    let text2 = text.replace(/```/g, '');
+    let text3 = text2.replace(/---/g, '')
+    let text4 = text3.replace(/\"/gi, "\\\"")
+    let text5 = text4.replace(/\`/gi, "\\`");
+    let text6 = text5.replace(/\'/gi, "\\'");
 
     console.log(text6.trim())
     const stop = await confirm({
       message: 'stop?'
     });
-    if(stop){
+    if (stop) {
       execSync(`git reset`);
       process.exit();
     }
     const commitOnly = await confirm({
       message: 'commit only?'
     });
-    if(commitOnly){
+    if (commitOnly) {
       execSync(`git add -A`);
       execSync(`printf "${text6.trim()}" | git commit -F-`);
       process.exit();
@@ -175,10 +184,10 @@ async function run() {
     const shouldContinue = await confirm({
       message: 'Do you want to push?',
     });
-    if(shouldContinue){
+    if (shouldContinue) {
       execSync(`printf "${text6}" | git commit -F-`);
       execSync("git push -u origin main");
-    }else{
+    } else {
       execSync(`git reset`);
     }
 
