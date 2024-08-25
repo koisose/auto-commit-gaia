@@ -102,10 +102,10 @@ async function randomNode() {
   return random
 }
 
-async function bo(diffString) {
+async function bo(diffString,useRandom) {
   const random = await randomNode();
   console.log(random.model_name)
-  const response = await ky.post(`https://${random.subdomain}/v1/chat/completions`, {
+  const response = await ky.post(useRandom?`https://${random.subdomain}/v1/chat/completions`:`https://0x9b829bf1e151def03532ab355cdfe5cee001f4b0.us.gaianet.network/v1/chat/completions`, {
     json: {
       "messages": [
         {
@@ -157,7 +157,14 @@ async function run() {
     });
 
     const diff = await readFirstFileDiff(fileName)
-    const completion = await bo(diff)
+    let completion=""
+    try{
+      completion = await bo(diff)
+    }catch(e){
+      console.log(e.message)
+      completion = await bo(diff,true)
+    }
+    
     const text = completion.choices[0]?.message?.content || "";
     let text2 = text.replace(/```/g, '');
     let text3 = text2.replace(/---/g, '')
