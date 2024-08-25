@@ -97,15 +97,15 @@ async function gitDiffStaged() {
 async function randomNode() {
   const response = await ky.get('https://api.gaianet.ai/api/v1/network/nodes/');
   const data = await response.json();
-  const objectArray = data.data.objects.filter(obj => obj.status === 'ONLINE' && obj.model_name && (obj.model_name.toLowerCase().includes('gemma') || obj.model_name.toLowerCase().includes('llama')));
+  const objectArray = data.data.objects.filter(obj => obj.status === 'ONLINE' && obj.model_name && obj.model_name.toLowerCase().includes('llama'));
   const random = objectArray[Math.floor(Math.random() * objectArray.length)];
   return random
 }
 
-async function bo(diffString,useRandom) {
+async function bo(diffString) {
   const random = await randomNode();
-  console.log(random.model_name)
-  const response = await ky.post(useRandom?`https://${random.subdomain}/v1/chat/completions`:`https://0x9b829bf1e151def03532ab355cdfe5cee001f4b0.us.gaianet.network/v1/chat/completions`, {
+
+  const response = await ky.post(`https://${random.subdomain}/v1/chat/completions`, {
     json: {
       "messages": [
         {
@@ -157,14 +157,8 @@ async function run() {
     });
 
     const diff = await readFirstFileDiff(fileName)
-    let completion=""
-    try{
-      completion = await bo(diff)
-    }catch(e){
-      console.log(e.message)
-      completion = await bo(diff,true)
-    }
-    
+    const completion = await bo(diff)   
+
     const text = completion.choices[0]?.message?.content || "";
     let text2 = text.replace(/```/g, '');
     let text3 = text2.replace(/---/g, '')
