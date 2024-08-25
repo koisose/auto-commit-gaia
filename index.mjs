@@ -101,7 +101,16 @@ async function randomNode() {
   const random = objectArray[Math.floor(Math.random() * objectArray.length)];
   return random
 }
-
+function decodeEscapedCharacters(str) {
+  return str.replace(/\\n/g, '\n')
+            .replace(/\\t/g, '\t')
+            .replace(/\\r/g, '\r')
+            .replace(/\\b/g, '\b')
+            .replace(/\\f/g, '\f')
+            .replace(/\\\\/g, '\\')
+            .replace(/\\"/g, '"')
+            .replace(/\\'/g, "'");
+}
 async function bo(diffString) {
   const random = await randomNode();
 
@@ -160,7 +169,8 @@ async function run() {
     const completion = await bo(diff)   
 
     const text = completion.choices[0]?.message?.content || "";
-    let text2 = text.replace(/```/g, '');
+    let text1=decodeEscapedCharacters(text)
+    let text2 = text1.replace(/```/g, '');
     let text3 = text2.replace(/---/g, '')
     let text4 = text3.replace(/\"/gi, "\\\"")
     let text5 = text4.replace(/\`/gi, "\\`");
