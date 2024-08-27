@@ -79,19 +79,6 @@ async function gitDiffStaged() {
 
   const files = output.trim().split('\n');
   return files
-  // let shortestFile = files[0];
-  // let shortestDiffLength = Infinity;
-  // for (const file of files) {
-  //   const diff = await readFirstFileDiff(file);
-  //   if (diff.length < shortestDiffLength) {
-  //     shortestFile = file;
-  //     shortestDiffLength = diff.length;
-  //   }
-  // }
-  // const diff = await readFirstFileDiff(shortestFile);
-  // return diff;
-
-
 
 }
 async function randomNode() {
